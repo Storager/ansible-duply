@@ -42,25 +42,28 @@ def main():
     sincelastinc  =  time.time() - lastinc 
 
     msg = "OK: "
-    
-    if sincelastfull > (args.warnfull * 24 * 3600) or sincelastinc > (args.warninc * 3600):
-        okay = 1
-        msg = "WARNING: "
-    
-    if sincelastfull > (args.critfull * 24 * 3600) or sincelastinc > (args.critinc * 3600):
-        okay = 2
-        msg = "CRITICAL: "
 
-    if not checkoutput(output):
-        okay = max(okay,1)
-        msg = "WARNING: duplicity output: %s " % repr(output)
+    if process_check('duplicity') == True:
+        print msg, "There is an ongiong backup. Check is postponed."
+    else:
+        if sincelastfull > (args.warnfull * 24 * 3600) or sincelastinc > (args.warninc * 3600):
+            okay = 1
+            msg = "WARNING: "
+        
+        if sincelastfull > (args.critfull * 24 * 3600) or sincelastinc > (args.critinc * 3600):
+            okay = 2
+            msg = "CRITICAL: "
+
+        if not checkoutput(output):
+            okay = max(okay,1)
+            msg = "WARNING: duplicity output: %s " % repr(output)
 
 
-    if err:
-        okay=2
-        msg = "Unexpected output: %s, " % repr(err)
+        if err:
+            okay=2
+            msg = "Unexpected output: %s, " % repr(err)
 
-    print msg, "last full %s ago, last incremential %s ago|lastfull=%d, lastinc=%d" % ( formattime(sincelastfull), formattime(sincelastinc), sincelastfull, sincelastinc)
+        print msg, "last full %s ago, last incremential %s ago|lastfull=%d, lastinc=%d" % ( formattime(sincelastfull), formattime(sincelastinc), sincelastfull, sincelastinc)
     sys.exit(okay)
 
 def checkoutput(output):
@@ -102,9 +105,13 @@ def findlastdates(output):
     # Count a full backup as incremental backup
     lastinc = max(lastfull,lastinc)
     return (lastfull, lastinc)
-            
-        
-	
 
+def process_check(process_name):
+    ps_status = False
+    ps_output , err = Popen(["ps", "-e"], stdout=PIPE, stderr=PIPE).communicate()
+    if process_name in ps_output:
+        ps_status = True
+    return ps_status            
+        
 if __name__=='__main__':
    main()
